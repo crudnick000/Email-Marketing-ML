@@ -2,7 +2,10 @@
 import re
 import csv
 import math
-from scipy import stats
+import numpy as np
+import pandas as pd
+from sklearn import linear_model
+#from sklearn.cross_validation import train_test_split
 
 """
 
@@ -48,12 +51,25 @@ def convertWordToNGram(line, n=2):
     return [ " ".join(subject[i:i+n]) for i in range(len(subject) - n+1) ]
 
 
+def leastSquaresRegression(X, y):
+    print X.dtype
+    print y.dtype
+    print y.T.shape
+    print X.shape, "\n"
+    a = np.dot(X, X.T)
+    b = np.dot(X.T, y)
+    print np.linalg.det(a)
+    return np.dot(np.linalg.inv(a), b)
+
+
 #gram = [ line[j] for j in range(i, n+1+i) ]
 
-f = open("subject_line_data.csv", "r")
-reader = csv.reader(f)
-data = [ row for row in reader ]
-f.close()
+data = []
+with open("subject_line_data.csv", "r") as fp:
+    reader = csv.reader(fp)
+    # format: string, float
+    data = [ row for row in reader ]
+    #data = data[:1000]
 
 avg_open_rate = sum([ float(row[1]) for row in data ]) / len(data)
 
@@ -83,7 +99,7 @@ for entry in final:
     print entry
 
 # Find High impact words
-
+"""
 for word in final:
     rates_list = [ row[1] for row in data if word[0] in row[0] ]
     t_val = stats.ttest_1samp(rates_list, avg_open_rate)
@@ -91,7 +107,10 @@ for word in final:
     crit_val = stats.t.ppf(1-0.05, len(rates_list) - 1)
     if t_val > crit_val:
         print word[0], " high-impact word"
+"""
 
+
+# Make feature vector
 
 #max(word_mean_dict, key=word_mean_dict.get)
 
@@ -99,5 +118,68 @@ for word in final:
 # 1. collect all words or n-grams used in all the subjects
 # 2. perform t test on each and determine which hos consistent high scores
 # 3. ...convert into vector and perform multivariate linear regression. Try other forms of regressions
+
+X = []
+y = []
+
+for row in data:
+
+    vector = [1]
+    subject_line, open_rate = row[0], float(row[1])
+
+    n_chars = len(subject_line) if len(subject_line) != 0 else 1
+    n_words = len(re.split(r"\w+", subject_line))
+
+    # total # c
+    vector += [ n_chars ]
+
+    # total # words
+    vector += [ n_words ]
+
+    # total # capital letters / total # words
+    vector += [ sum([ c for c in subject_line if c.isupper() ]) / n_chars ]
+
+    # 4. Total no of digit cs / C
+    n_digits = sum( 1 for c in subject_line if c.isdigit() ) / n_chars
+    vector += [ n_digits ]
+
+    # 5. Total no of whitespace cs / C
+    n_spaces  = sum( 1 for c in subject_line if c.isspace() ) / n_chars
+    vector += [ n_spaces ]
+
+    # 6. Frequency of special cs (10 cs: *,_,+,=,%,$,@,\,/)
+    vector += [ subject_line.count(c) for c in "%$@\/&" ] # *_+=
+
+    # 7. Frequency of punctuation 18 punctuation cs: . , ; ? ! : ( ) - " < > [ ] { }
+    vector += [ subject_line.count(c) for c in "?!" ] # .,;:()-<>[]{}
+
+    X += [ vector ]
+    y += [[ open_rate ]]
+
+X = np.array(X).astype("float64")
+y = np.array(y)
+
+
+#print leastSquaresRegression(X, y)
+
+reg = linear_model.LinearRegression()
+reg.fit(X, y)
+
+print "\nCoeffients for Multiple Linear Regression: "
+print reg.coef_
+
+
+print "\nCoeffients for Ordinary Least Squared Regression"
+
+
+print "\nCoeffients for Multiple Logistic Regression: "
+
+print "\nCoeffients for Multiple Stepwise Regression: "
+
+
+print "\nCoeffients for MARS: "
+
+
+print "\nCoeffients for LOESS: "
 
 

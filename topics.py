@@ -15,7 +15,7 @@ import time
 
 class BayesNet():
     def __init__(self):
-        self.T_given_D = {} 
+        self.T_given_D = {}
         self.W_given_T = {}
 
 
@@ -35,20 +35,20 @@ class BayesNet():
 
         for (roots, dirs, files) in os.walk(_dataSetDir):
 
-            if len(files) <= 2:
+            if len(dirs):
                 continue
 
             fileList = []
 
             sys.stdout.flush()
-            sys.stdout.write( "Files read: %d out of %d files\r" % (fileCount, numFiles) )
+            sys.stdout.write("Files read: %d out of %d files\r" % (fileCount, numFiles))
 
-            topic = os.path.split(roots)[-1] 
+            topic = os.path.split(roots)[-1]
 
             if topic == "train":
                continue
 
-            self.T_given_D[topic] = 0 
+            self.T_given_D[topic] = 0
             self.W_given_T[topic] = {}
 
             count = len(files)
@@ -89,6 +89,7 @@ class BayesNet():
     def calculateProbability(x, mean, stddov):
         exponent = math.exp(-(math.pow(x-mean, 2) / (2 * math.pow(stddev, 2))))
         return (1 / (math.sqrt(2 * math.pi) * stddev)) * exponent
+
 
     def writeModelToFile(self, name):
 
